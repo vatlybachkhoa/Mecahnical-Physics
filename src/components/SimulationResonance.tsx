@@ -10,14 +10,14 @@ export function SimulationResonance() {
   const [freq, setFreq] = useState(1); // Hz
   const [isPlayingInt, setIsPlayingInt] = useState(true);
   const [timeInt, setTimeInt] = useState(0);
-  const reqRefInt = useRef<number>();
+  const reqRefInt = useRef<number | null>(null);
 
   // --- Resonance State ---
   const [drivingFreq, setDrivingFreq] = useState(1.5); // Hz
   const [damping, setDamping] = useState(0.2);
   const [isPlayingRes, setIsPlayingRes] = useState(true);
   const [timeRes, setTimeRes] = useState(0);
-  const reqRefRes = useRef<number>();
+  const reqRefRes = useRef<number | null>(null);
 
   const naturalFreq = 1.5; // fixed natural frequency
 

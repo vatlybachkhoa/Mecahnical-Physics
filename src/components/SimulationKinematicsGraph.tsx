@@ -54,7 +54,7 @@ export function SimulationKinematicsGraph() {
   const [scenarioKey, setScenarioKey] = useState<ScenarioKey>('speed_up_pos');
   const [time, setTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const reqRef = useRef<number>();
+  const reqRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
   const scenario = SCENARIOS[scenarioKey];

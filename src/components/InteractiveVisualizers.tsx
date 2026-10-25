@@ -191,23 +191,33 @@ export function VisualizerMomentum() {
   const [v2, setV2] = useState(-1);
   const [isElastic, setIsElastic] = useState(true);
   
-  const [pos1, setPos1] = useState(50);
-  const [pos2, setPos2] = useState(250);
-  const [currentV1, setCurrentV1] = useState(v1);
-  const [currentV2, setCurrentV2] = useState(v2);
+  // Physics state in a ref to avoid React state update jitters
+  const physicsRef = useRef({
+    pos1: 50,
+    pos2: 250,
+    v1: 2,
+    v2: -1,
+    hasCollided: false
+  });
+
+  // Display state for React rendering
+  const [displayState, setDisplayState] = useState({ pos1: 50, pos2: 250, v1: 2, v2: -1 });
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hasCollided, setHasCollided] = useState(false);
   
   const reqRef = useRef(0);
   const lastTimeRef = useRef(0);
 
   const reset = () => {
     setIsPlaying(false);
-    setHasCollided(false);
-    setPos1(50);
-    setPos2(250);
-    setCurrentV1(v1);
-    setCurrentV2(v2);
+    physicsRef.current = {
+      pos1: 50,
+      pos2: 250,
+      v1: v1,
+      v2: v2,
+      hasCollided: false
+    };
+    setDisplayState({ pos1: 50, pos2: 250, v1: v1, v2: v2 });
+    lastTimeRef.current = 0;
   };
 
   useEffect(() => {
@@ -218,45 +228,52 @@ export function VisualizerMomentum() {
     if (isPlaying) {
       const animate = (time: number) => {
         if (!lastTimeRef.current) lastTimeRef.current = time;
-        const dt = (time - lastTimeRef.current) / 1000;
+        const dt = Math.min((time - lastTimeRef.current) / 1000, 0.03); // Cap dt for stability
         lastTimeRef.current = time;
         
-        setPos1(p1 => {
-          setPos2(p2 => {
-            let newP1 = p1 + currentV1 * dt * 30;
-            let newP2 = p2 + currentV2 * dt * 30;
-            
-            const r1 = 15 + m1 * 2;
-            const r2 = 15 + m2 * 2;
-            const minDist = r1 + r2;
-            
-            // Collision detection
-            if (!hasCollided && newP2 - newP1 <= minDist) {
-              setHasCollided(true);
-              if (isElastic) {
-                const newV1 = ((m1 - m2) * currentV1 + 2 * m2 * currentV2) / (m1 + m2);
-                const newV2 = ((m2 - m1) * currentV2 + 2 * m1 * currentV1) / (m1 + m2);
-                setCurrentV1(newV1);
-                setCurrentV2(newV2);
-              } else {
-                const vFinal = (m1 * currentV1 + m2 * currentV2) / (m1 + m2);
-                setCurrentV1(vFinal);
-                setCurrentV2(vFinal);
-              }
-              // Adjust positions to exactly touching
-              const overlap = minDist - (newP2 - newP1);
-              newP1 -= overlap / 2;
-              newP2 += overlap / 2;
-            }
-            
-            if (newP1 < -50 || newP2 > 400 || newP1 > 400 || newP2 < -50) {
-              setIsPlaying(false);
-            }
-            
-            return newP2;
-          });
-          return p1 + currentV1 * dt * 30;
-        });
+        const state = physicsRef.current;
+        const r1 = 15 + m1 * 2;
+        const r2 = 15 + m2 * 2;
+        const minDist = r1 + r2;
+        const scale = 30; // pixels per m/s
+
+        // Predictive position update
+        let nextP1 = state.pos1 + state.v1 * dt * scale;
+        let nextP2 = state.pos2 + state.v2 * dt * scale;
+        
+        // Collision detection
+        // We check relative velocity to ensure they are moving towards each other
+        const relativeVel = state.v1 - state.v2;
+        if (!state.hasCollided && (nextP2 - nextP1 <= minDist) && relativeVel > 0) {
+          state.hasCollided = true;
+          
+          if (isElastic) {
+            const v1_new = ((m1 - m2) * state.v1 + 2 * m2 * state.v2) / (m1 + m2);
+            const v2_new = ((m2 - m1) * state.v2 + 2 * m1 * state.v1) / (m1 + m2);
+            state.v1 = v1_new;
+            state.v2 = v2_new;
+          } else {
+            const vFinal = (m1 * state.v1 + m2 * state.v2) / (m1 + m2);
+            state.v1 = vFinal;
+            state.v2 = vFinal;
+          }
+
+          // Adjust positions to exactly touching at the point of impact
+          // This prevents them from "bouncing" before they visibly touch
+          const overlap = minDist - (nextP2 - nextP1);
+          nextP1 -= overlap / 2;
+          nextP2 += overlap / 2;
+        }
+        
+        state.pos1 = nextP1;
+        state.pos2 = nextP2;
+
+        setDisplayState({ pos1: state.pos1, pos2: state.pos2, v1: state.v1, v2: state.v2 });
+
+        if (state.pos1 < -50 || state.pos2 > 400 || state.pos1 > 400 || state.pos2 < -50) {
+          setIsPlaying(false);
+          return;
+        }
         
         reqRef.current = requestAnimationFrame(animate);
       };
@@ -265,10 +282,10 @@ export function VisualizerMomentum() {
       lastTimeRef.current = 0;
     }
     return () => cancelAnimationFrame(reqRef.current);
-  }, [isPlaying, currentV1, currentV2, hasCollided, isElastic, m1, m2]);
+  }, [isPlaying, isElastic, m1, m2]);
 
   const pInitial = m1 * v1 + m2 * v2;
-  const pCurrent = m1 * currentV1 + m2 * currentV2;
+  const pCurrent = m1 * displayState.v1 + m2 * displayState.v2;
 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm my-6">
@@ -312,7 +329,7 @@ export function VisualizerMomentum() {
             <div 
               className="absolute bg-blue-500 rounded-full flex items-center justify-center text-white font-bold shadow-md transition-all duration-75"
               style={{ 
-                left: `${pos1 - (15 + m1 * 2)}px`, 
+                left: `${displayState.pos1 - (15 + m1 * 2)}px`, 
                 width: `${(15 + m1 * 2) * 2}px`, 
                 height: `${(15 + m1 * 2) * 2}px` 
               }}
@@ -323,7 +340,7 @@ export function VisualizerMomentum() {
             <div 
               className="absolute bg-red-500 rounded-full flex items-center justify-center text-white font-bold shadow-md transition-all duration-75"
               style={{ 
-                left: `${pos2 - (15 + m2 * 2)}px`, 
+                left: `${displayState.pos2 - (15 + m2 * 2)}px`, 
                 width: `${(15 + m2 * 2) * 2}px`, 
                 height: `${(15 + m2 * 2) * 2}px` 
               }}

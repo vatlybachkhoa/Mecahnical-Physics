@@ -24,7 +24,7 @@ export function SimulationVerticalCircle() {
   const [PE, setPE] = useState(0);
   const [spilledWater, setSpilledWater] = useState<{x: number, y: number, vx: number, vy: number}[]>([]);
 
-  const reqRef = useRef<number>();
+  const reqRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
   // Physics state ref for integration

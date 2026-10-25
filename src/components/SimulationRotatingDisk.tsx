@@ -12,7 +12,7 @@ export function SimulationRotatingDisk() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasSlipped, setHasSlipped] = useState(false);
 
-  const reqRef = useRef<number>();
+  const reqRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
   const g = 9.8;

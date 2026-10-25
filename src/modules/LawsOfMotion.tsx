@@ -6,6 +6,7 @@ import { VisualizerFMA } from '../components/InteractiveVisualizers';
 import { SimulationPulley } from '../components/SimulationPulley';
 import { SimulationFrictionCart } from '../components/SimulationFrictionCart';
 import { SimulationRotatingDisk } from '../components/SimulationRotatingDisk';
+import { SimulationTwoBlocksPulley } from '../components/SimulationTwoBlocksPulley';
 import 'katex/dist/katex.min.css';
 
 export function LawsOfMotion() {
@@ -432,6 +433,9 @@ export function LawsOfMotion() {
         </div>
         <div className="mt-8">
           <SimulationRotatingDisk />
+        </div>
+        <div className="mt-8">
+          <SimulationTwoBlocksPulley />
         </div>
       </section>
 

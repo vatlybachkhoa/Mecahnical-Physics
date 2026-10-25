@@ -145,9 +145,12 @@ export function SimulationCollision() {
       state.x2 += state.v2 * dt * scale;
 
       // Collision detection
-      if (!state.hasCollided && state.x1 + size1 >= state.x2) {
+      // Check if they are moving towards each other and are currently overlapping or touching
+      const relativeVel = state.v1 - state.v2;
+
+      if (!state.hasCollided && (state.x1 + size1 >= state.x2) && relativeVel > 0) {
         state.hasCollided = true;
-        // Move them exactly to contact point to prevent sticking
+        // Move them exactly to contact point to prevent sticking or gaps
         const overlap = (state.x1 + size1) - state.x2;
         state.x1 -= overlap / 2;
         state.x2 += overlap / 2;
